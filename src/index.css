@@ -1,0 +1,163 @@
+/* 
+ * Heavy Timer - グローバルスタイルシート
+ * 
+ * このファイルでは：
+ * 1. Tailwind CSSの読み込み
+ * 2. カスタムユーティリティクラス（LEDグロー効果など）
+ * 3. iOS風ピッカーのスタイル
+ */
+
+/* Tailwind CSSの3つのレイヤー：
+ * - base: リセットCSS的な基本スタイル
+ * - components: 再利用可能なコンポーネント用
+ * - utilities: ユーティリティクラス（md:flex など）
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ベーススタイルのカスタマイズ */
+@layer base {
+  /* HTML全体のスタイル */
+  html {
+    /* オーバースクロール時のバウンス効果を無効化（アプリ風に） */
+    overscroll-behavior: none;
+    /* ユーザー選択を無効化（タップ時のハイライト防止） */
+    -webkit-user-select: none;
+    user-select: none;
+    /* タップ時のハイライトを透明に */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    /* 背景色：深い黒 */
+    background-color: #0a0a0a;
+    /* VT323フォントを全体に適用 */
+    font-family: 'VT323', monospace;
+    /* モバイル対応：Safe areaを考慮 */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    /* 最小高さを画面全体に */
+    min-height: 100vh;
+    min-height: 100dvh; /* dynamic viewport height */
+  }
+}
+
+/* カスタムコンポーネントスタイル */
+@layer components {
+  /* LEDグロー効果（ワークアウト時：緑） */
+  .glow-green {
+    color: #00ff00;
+    text-shadow: 
+      0 0 10px #00ff00,
+      0 0 20px #00ff00,
+      0 0 40px #00ff00,
+      0 0 80px #00ff00;
+    /* アニメーションでわずかに明滅させる */
+    animation: pulse-green 2s ease-in-out infinite;
+  }
+
+  /* LEDグロー効果（休憩時：赤） */
+  .glow-red {
+    color: #ff3333;
+    text-shadow: 
+      0 0 10px #ff3333,
+      0 0 20px #ff3333,
+      0 0 40px #ff3333,
+      0 0 80px #ff3333;
+    animation: pulse-red 2s ease-in-out infinite;
+  }
+
+  /* メインボタンのスタイル */
+  .btn-main {
+    @apply w-32 h-32 rounded-full flex items-center justify-center;
+    @apply bg-gradient-to-b from-gray-800 to-gray-900;
+    @apply border-4 border-gray-600;
+    @apply shadow-lg shadow-black/50;
+    @apply active:scale-95 transition-transform;
+  }
+
+  /* 設定ボタンのスタイル */
+  .btn-config {
+    @apply px-4 py-2 rounded-lg;
+    @apply border-2 border-button-border;
+    @apply bg-gray-900/50;
+    @apply text-gray-300 font-vt323 text-xl;
+    @apply active:bg-gray-800 transition-colors;
+  }
+
+  /* 小さなコントロールボタン */
+  .btn-control {
+    @apply w-14 h-14 rounded-full flex items-center justify-center;
+    @apply bg-gray-900/50 border-2 border-gray-700;
+    @apply active:bg-gray-800 transition-colors;
+  }
+}
+
+/* カスタムアニメーション */
+@keyframes pulse-green {
+  0%, 100% {
+    text-shadow: 
+      0 0 10px #00ff00,
+      0 0 20px #00ff00,
+      0 0 40px #00ff00,
+      0 0 80px #00ff00;
+  }
+  50% {
+    text-shadow: 
+      0 0 5px #00ff00,
+      0 0 10px #00ff00,
+      0 0 20px #00ff00,
+      0 0 40px #00ff00;
+  }
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    text-shadow: 
+      0 0 10px #ff3333,
+      0 0 20px #ff3333,
+      0 0 40px #ff3333,
+      0 0 80px #ff3333;
+  }
+  50% {
+    text-shadow: 
+      0 0 5px #ff3333,
+      0 0 10px #ff3333,
+      0 0 20px #ff3333,
+      0 0 40px #ff3333;
+  }
+}
+
+/* iOS風ピッカーのスタイル */
+.picker-overlay {
+  /* 背景をぼかす */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.picker-wheel {
+  /* スクロールをスムーズに */
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.picker-item {
+  scroll-snap-align: center;
+}
+
+/* 警告音カウントダウン時のフラッシュ効果 */
+.warning-flash {
+  animation: flash 0.5s ease-out;
+}
+
+@keyframes flash {
+  0% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heavy Timer - Sound Preview v3</title>
+
+    <!-- Chakra Petch Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --timer-green: #00ff00;
+            --bg-color: #0a0a0a;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1,
+        h2 {
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+            color: var(--timer-green);
+        }
+
+        .section {
+            margin-bottom: 50px;
+        }
+
+        .timer-preview {
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 100px;
+            color: var(--timer-green);
+            text-shadow: 0 0 20px var(--timer-green);
+            text-align: center;
+            margin: 30px 0;
+            background: #111;
+            padding: 20px;
+            border-radius: 20px;
+            border: 4px solid #333;
+        }
+
+        .sound-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .sound-btn {
+            background: #222;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.1s;
+            text-align: left;
+        }
+
+        .sound-btn:hover {
+            background: #333;
+            border-color: var(--timer-green);
+        }
+
+        .sound-btn:active {
+            transform: scale(0.98);
+            background: #444;
+        }
+
+        .btn-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .btn-desc {
+            font-size: 12px;
+            color: #aaa;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Sound Preview v3</h1>
+
+    <div class="section">
+        <h2>Design Check: Chakra Petch</h2>
+        <div class="timer-preview">0:05</div>
+    </div>
+
+    <div class="section">
+        <h2>終了音 (粒立ち良い低音ピリピリ)</h2>
+        <p>Alarm #10ベースの改良版。低音・スタッカート強調。</p>
+        <div class="sound-grid" id="alarm-grid"></div>
+    </div>
+
+    <div class="section">
+        <h2>10秒前警告 (乾いたクラック音)</h2>
+        <p>カン...カン (0.2秒間隔)。こもりを排除し、硬い木の衝突音へ。</p>
+        <div class="sound-grid" id="clack-grid"></div>
+    </div>
+
+    <script>
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // ==========================================
+        // 終了音 (改良版ピリピリ)
+        // ==========================================
+        function playImprovedAlarm(params) {
+            const now = ctx.currentTime;
+            const { freq, speed, count, duty = 0.5 } = params;
+
+            const interval = 1 / speed;
+            const duration = interval * duty; // 発音時間を短くして粒立ちを良くする
+
+            for (let i = 0; i < count; i++) {
+                const t = now + i * interval;
+
+                const osc = ctx.createOscillator();
+                osc.type = 'sawtooth'; // 威圧感のある鋸歯状波
+                osc.frequency.value = freq;
+
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                // 鋭いエンベロープ
+                gain.gain.setValueAtTime(0, t);
+                gain.gain.linearRampToValueAtTime(0.6, t + 0.005);
+                gain.gain.setValueAtTime(0.6, t + duration * 0.8);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+
+                osc.start(t);
+                osc.stop(t + duration + 0.01);
+            }
+        }
+
+        const alarmVariations = [
+            { name: "Low Piri #1", desc: "1000Hz, 15回/秒, 短め", p: { freq: 1000, speed: 15, count: 15, duty: 0.3 } },
+            { name: "Low Piri #2", desc: "800Hz, 12回/秒, 重め", p: { freq: 800, speed: 12, count: 12, duty: 0.4 } },
+            { name: "Low Piri #3", desc: "1200Hz, 18回/秒, 高速", p: { freq: 1200, speed: 18, count: 18, duty: 0.25 } },
+            {
+                name: "Low Piri #4", desc: "矩形波ベース (900Hz)", func: () => {
+                    const now = ctx.currentTime;
+                    const count = 15;
+                    const interval = 0.05; // 20Hz
+                    for (let i = 0; i < count; i++) {
+                        const t = now + i * interval;
+                        const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = 900;
+                        const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination);
+                        g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.02);
+                        o.start(t); o.stop(t + 0.03);
+                    }
+                }
+            },
+            {
+                name: "Low Piri #5", desc: "FM変調付き (金属感)", func: () => {
+                    const now = ctx.currentTime;
+                    const count = 12;
+                    const interval = 0.07;
+                    for (let i = 0; i < count; i++) {
+                        const t = now + i * interval;
+                        const carrier = ctx.createOscillator(); carrier.frequency.value = 1000;
+                        const mod = ctx.createOscillator(); mod.frequency.value = 250;
+                        const modG = ctx.createGain(); modG.gain.value = 500;
+                        const mainG = ctx.createGain();
+                        mod.connect(modG); modG.connect(carrier.frequency);
+                        carrier.connect(mainG); mainG.connect(ctx.destination);
+                        mainG.gain.setValueAtTime(0.5, t); mainG.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+                        carrier.start(t); mod.start(t);
+                        carrier.stop(t + 0.04); mod.stop(t + 0.04);
+                    }
+                }
+            },
+            { name: "Low Piri #6", desc: "超高速粒立ち (25Hz)", p: { freq: 1100, speed: 25, count: 25, duty: 0.2 } },
+            {
+                name: "Low Piri #7", desc: "アタック強調", func: () => {
+                    const now = ctx.currentTime;
+                    const count = 15;
+                    const interval = 0.06;
+                    for (let i = 0; i < count; i++) {
+                        const t = now + i * interval;
+                        const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 950;
+                        const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination);
+                        g.gain.setValueAtTime(0, t);
+                        g.gain.linearRampToValueAtTime(0.7, t + 0.002); // 急激な立ち上がり
+                        g.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+                        o.start(t); o.stop(t + 0.04);
+                    }
+                }
+            },
+            {
+                name: "Low Piri #8", desc: "スウィープダウン", func: () => {
+                    const now = ctx.currentTime;
+                    const count = 12;
+                    const interval = 0.06;
+                    for (let i = 0; i < count; i++) {
+                        const t = now + i * interval;
+                        const o = ctx.createOscillator(); o.frequency.setValueAtTime(1200, t); o.frequency.exponentialRampToValueAtTime(800, t + 0.03);
+                        const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination);
+                        g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+                        o.start(t); o.stop(t + 0.04);
+                    }
+                }
+            },
+            {
+                name: "Low Piri #9", desc: "ディストーション", func: () => {
+                    const now = ctx.currentTime;
+                    const count = 14;
+                    const interval = 0.06;
+                    const shaper = ctx.createWaveShaper();
+                    // 簡易的な歪みカーブ
+                    const curve = new Float32Array(44100);
+                    for (let i = 0; i < 44100; i++) {
+                        const x = i * 2 / 44100 - 1;
+                        curve[i] = (Math.PI + 50) * x / 2 / (Math.PI + 50 * Math.abs(x));
+                    }
+                    shaper.curve = curve;
+                    shaper.connect(ctx.destination);
+
+                    for (let i = 0; i < count; i++) {
+                        const t = now + i * interval;
+                        const o = ctx.createOscillator(); o.frequency.value = 900;
+                        const g = ctx.createGain();
+                        o.connect(g); g.connect(shaper);
+                        g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+                        o.start(t); o.stop(t + 0.04);
+                    }
+                }
+            },
+            { name: "Low Piri #10", desc: "最も短い粒 (Duty 15%)", p: { freq: 1000, speed: 16, count: 16, duty: 0.15 } },
+        ];
+
+
+        // ==========================================
+        // 警告音 (乾いたクラック改)
+        // ==========================================
+        function playDryClack(params) {
+            const now = ctx.currentTime;
+            const { freq, interval = 0.2, toneMix = 0.1 } = params;
+
+            [now, now + interval].forEach(t => {
+                // 1. ノイズ成分 (Highpass Filter強め)
+                const nBuf = ctx.createBuffer(1, ctx.sampleRate * 0.05, ctx.sampleRate);
+                const nData = nBuf.getChannelData(0);
+                for (let i = 0; i < nData.length; i++) nData[i] = Math.random() * 2 - 1;
+
+                const nSrc = ctx.createBufferSource();
+                nSrc.buffer = nBuf;
+
+                const nFilter = ctx.createBiquadFilter();
+                nFilter.type = 'highpass';
+                nFilter.frequency.value = 2000; // 低域を完全にカットして乾かす
+
+                const nGain = ctx.createGain();
+                nSrc.connect(nFilter);
+                nFilter.connect(nGain);
+                nGain.connect(ctx.destination);
+
+                // 鋭いアタック
+                nGain.gain.setValueAtTime(0.8, t);
+                nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.015); // 超短く
+
+                nSrc.start(t);
+                nSrc.stop(t + 0.05);
+
+                // 2. トーン成分 (硬さを出すための隠し味)
+                if (toneMix > 0) {
+                    const osc = ctx.createOscillator();
+                    osc.frequency.value = freq;
+                    const oGain = ctx.createGain();
+                    osc.connect(oGain);
+                    oGain.connect(ctx.destination);
+
+                    oGain.gain.setValueAtTime(toneMix, t);
+                    oGain.gain.exponentialRampToValueAtTime(0.001, t + 0.01); // こちらも一瞬
+
+                    osc.start(t);
+                    osc.stop(t + 0.02);
+                }
+            });
+        }
+
+        const clackVariations = [
+            { name: "Dry #1", desc: "超ドライ (2000Hz HPF)", p: { freq: 0, interval: 0.2, toneMix: 0 } },
+            {
+                name: "Dry #2", desc: "クリッキー (3000Hz HPF)", func: () => {
+                    const now = ctx.currentTime;
+                    [now, now + 0.2].forEach(t => {
+                        const n = ctx.createBufferSource();
+                        const b = ctx.createBuffer(1, 44100 * 0.03, 44100);
+                        const d = b.getChannelData(0);
+                        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+                        n.buffer = b;
+                        const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 3000;
+                        const g = ctx.createGain();
+                        n.connect(f); f.connect(g); g.connect(ctx.destination);
+                        g.gain.setValueAtTime(1.0, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.01);
+                        n.start(t); n.stop(t + 0.05);
+                    });
+                }
+            },
+            { name: "Dry #3", desc: "硬質ミックス (Tone 2500Hz)", p: { freq: 2500, interval: 0.2, toneMix: 0.2 } },
+            { name: "Dry #4", desc: "ややスロー (0.22s)", p: { freq: 0, interval: 0.22, toneMix: 0 } },
+            { name: "Dry #5", desc: "高速 (0.18s)", p: { freq: 0, interval: 0.18, toneMix: 0 } },
+            {
+                name: "Dry #6", desc: "ウッドチップ (短形波ノイズ)", func: () => {
+                    // ノイズの代わりに短い矩形波バーストを使う
+                    const now = ctx.currentTime;
+                    [now, now + 0.2].forEach(t => {
+                        const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = 800; // 低めだが超短いとクリック音になる
+                        const g = ctx.createGain();
+                        const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1000;
+                        o.connect(f); f.connect(g); g.connect(ctx.destination);
+                        g.gain.setValueAtTime(0.6, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.008);
+                        o.start(t); o.stop(t + 0.02);
+                    });
+                }
+            },
+            { name: "Dry #7", desc: "ハイインパクト", p: { freq: 0, interval: 0.2, toneMix: 0 } }, // Gain調整済み
+            { name: "Dry #8", desc: "ダブルクリック (Tone 4000Hz)", p: { freq: 4000, interval: 0.2, toneMix: 0.3 } },
+            {
+                name: "Dry #9", desc: "レゾナンス (Bandpass)", func: () => {
+                    const now = ctx.currentTime;
+                    [now, now + 0.2].forEach(t => {
+                        const n = ctx.createBufferSource();
+                        const b = ctx.createBuffer(1, 44100 * 0.05, 44100);
+                        const d = b.getChannelData(0);
+                        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+                        n.buffer = b;
+                        const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2000; f.Q.value = 1;
+                        const g = ctx.createGain();
+                        n.connect(f); f.connect(g); g.connect(ctx.destination);
+                        g.gain.setValueAtTime(0.8, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.015);
+                        n.start(t); n.stop(t + 0.05);
+                    });
+                }
+            },
+            { name: "Dry #10", desc: "完全乾燥 (White Noise Only)", p: { freq: 8000, interval: 0.2, toneMix: 0 } },
+        ];
+
+        // UI生成
+        const alarmGrid = document.getElementById('alarm-grid');
+        alarmVariations.forEach(v => {
+            const btn = document.createElement('button');
+            btn.className = 'sound-btn';
+            btn.innerHTML = `<div class="btn-title">${v.name}</div><div class="btn-desc">${v.desc}</div>`;
+            btn.onclick = () => { if (v.func) v.func(); else playImprovedAlarm(v.p); };
+            alarmGrid.appendChild(btn);
+        });
+
+        const clackGrid = document.getElementById('clack-grid');
+        clackVariations.forEach(v => {
+            const btn = document.createElement('button');
+            btn.className = 'sound-btn';
+            btn.innerHTML = `<div class="btn-title">${v.name}</div><div class="btn-desc">${v.desc}</div>`;
+            btn.onclick = () => { if (v.func) v.func(); else playDryClack(v.p); };
+            clackGrid.appendChild(btn);
+        });
+
+    </script>
+</body>
+
+</html>

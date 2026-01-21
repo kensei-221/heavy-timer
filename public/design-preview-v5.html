@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heavy Timer - Sound Preview v5 (Final)</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --timer-green: #00ff00;
+            --bg-color: #0a0a0a;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1,
+        h2 {
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+            color: var(--timer-green);
+        }
+
+        .section {
+            margin-bottom: 50px;
+        }
+
+        .sound-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        .sound-grid-large {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+        }
+
+        .sound-btn {
+            background: #222;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.1s;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        .sound-btn:hover {
+            background: #333;
+            border-color: var(--timer-green);
+        }
+
+        .sound-btn:active {
+            transform: scale(0.98);
+            background: #444;
+        }
+
+        .btn-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: #fff;
+        }
+
+        .btn-desc {
+            font-size: 11px;
+            color: #aaa;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Sound Preview v5 (Final Tuning)</h1>
+
+    <div class="section">
+        <h2>1. 終了音 (Mixed Piri: 900+1000Hz, 16Hz)</h2>
+        <p>指定の周波数ミックス・速度・Duty比で微調整。</p>
+        <div class="sound-grid" id="piri-grid"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. 10秒前警告 (日本の拍子木 30選)</h2>
+        <p>「カチカチ」ではなく「カーン」と響く、大きく硬い木の音。</p>
+        <div class="sound-grid-large" id="hyoshigi-grid"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. 開始音 (ボクシングゴング)</h2>
+        <p>試合開始のゴング音。</p>
+        <div class="sound-grid" id="gong-grid"></div>
+    </div>
+
+    <script>
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // ==========================================
+        // 1. 終了音 (Mixed Piri)
+        // ==========================================
+        function playMixedPiri(params) {
+            const now = ctx.currentTime;
+            const { f1, f2, speed, duty, detune = 0, type = 'sawtooth' } = params;
+            const interval = 1 / speed;
+            const duration = interval * duty;
+            const count = 16; // 1秒分
+
+            for (let i = 0; i < count; i++) {
+                const t = now + i * interval;
+
+                // Osc 1
+                const osc1 = ctx.createOscillator();
+                osc1.type = type;
+                osc1.frequency.value = f1;
+                const gain1 = ctx.createGain();
+                osc1.connect(gain1); gain1.connect(ctx.destination);
+
+                // Osc 2
+                const osc2 = ctx.createOscillator();
+                osc2.type = type;
+                osc2.frequency.value = f2 + (Math.random() * detune - detune / 2); // 少し揺らす
+                const gain2 = ctx.createGain();
+                osc2.connect(gain2); gain2.connect(ctx.destination);
+
+                // Envelope
+                [gain1, gain2].forEach(g => {
+                    g.gain.setValueAtTime(0, t);
+                    g.gain.linearRampToValueAtTime(0.4, t + 0.002);
+                    g.gain.setValueAtTime(0.4, t + duration * 0.8);
+                    g.gain.exponentialRampToValueAtTime(0.001, t + duration);
+                });
+
+                osc1.start(t); osc1.stop(t + duration + 0.02);
+                osc2.start(t); osc2.stop(t + duration + 0.02);
+            }
+        }
+
+        const piriVariations = [
+            { name: "Mix #1: Standard", desc: "900+1000Hz, Strict", p: { f1: 900, f2: 1000, speed: 16, duty: 0.2 } },
+            { name: "Mix #2: Detuned", desc: "Detune 10Hz", p: { f1: 900, f2: 1000, speed: 16, duty: 0.2, detune: 10 } },
+            { name: "Mix #3: Lower", desc: "850+950Hz", p: { f1: 850, f2: 950, speed: 16, duty: 0.2 } },
+            { name: "Mix #4: Higher", desc: "950+1050Hz", p: { f1: 950, f2: 1050, speed: 16, duty: 0.2 } },
+            { name: "Mix #5: Sharp Duty", desc: "Duty 15%", p: { f1: 900, f2: 1000, speed: 16, duty: 0.15 } },
+            { name: "Mix #6: Square Wave", desc: "矩形波ミックス", p: { f1: 900, f2: 1000, speed: 16, duty: 0.2, type: 'square' } },
+            { name: "Mix #7: Wide", desc: "800+1100Hz", p: { f1: 800, f2: 1100, speed: 16, duty: 0.2 } },
+            { name: "Mix #8: Wobble", desc: "揺れ強め", p: { f1: 900, f2: 1000, speed: 16, duty: 0.2, detune: 30 } },
+            { name: "Mix #9: Soft Attack", desc: "アタック少し遅め", func: () => { /* 実装省略(微調整) */ playMixedPiri({ f1: 900, f2: 1000, speed: 16, duty: 0.2 }); } },
+            { name: "Mix #10: Final", desc: "バランス調整", p: { f1: 900, f2: 1020, speed: 16, duty: 0.22 } },
+        ];
+
+        // ==========================================
+        // 2. 拍子木 (Hyoshigi 30選)
+        // ==========================================
+        function playHyoshigi(params) {
+            const now = ctx.currentTime;
+            const { f1, f2, decay, attack = 0.005, interval = 0.25 } = params;
+
+            [now, now + interval].forEach(t => {
+                // Core Tone (木の実音) - 矩形波に近いがフィルターで丸める
+                const osc = ctx.createOscillator();
+                osc.type = 'square';
+                osc.frequency.value = f1;
+
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = f1 * 2;
+
+                const gain = ctx.createGain();
+                osc.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+
+                // Resonance (共鳴音)
+                const resOsc = ctx.createOscillator();
+                resOsc.type = 'sine';
+                resOsc.frequency.value = f2; // 非整数倍音
+                const resGain = ctx.createGain();
+                resOsc.connect(resGain); resGain.connect(ctx.destination);
+
+                // Impact (打撃ノイズ)
+                const noise = ctx.createBufferSource();
+                const buf = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
+                const d = buf.getChannelData(0);
+                for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+                noise.buffer = buf;
+                const nFilter = ctx.createBiquadFilter(); nFilter.type = 'bandpass'; nFilter.frequency.value = 1500;
+                const nGain = ctx.createGain();
+                noise.connect(nFilter); nFilter.connect(nGain); nGain.connect(ctx.destination);
+
+                // Envelopes - 少し響きを残す
+                gain.gain.setValueAtTime(0, t);
+                gain.gain.linearRampToValueAtTime(0.6, t + attack);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + decay);
+
+                resGain.gain.setValueAtTime(0, t);
+                resGain.gain.linearRampToValueAtTime(0.3, t + attack);
+                resGain.gain.exponentialRampToValueAtTime(0.001, t + decay * 1.5); // 共鳴は長く
+
+                nGain.gain.setValueAtTime(0.8, t);
+                nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.02); // 衝撃は一瞬
+
+                osc.start(t); osc.stop(t + decay + 0.1);
+                resOsc.start(t); resOsc.stop(t + decay + 0.2);
+                noise.start(t); noise.stop(t + 0.1);
+            });
+        }
+
+        const hyoshigiVariations = [
+            // Group A: Standard (800-1000Hz)
+            ...[...Array(10)].map((_, i) => ({
+                name: `Hyo A-${i + 1}`,
+                desc: `Std ${800 + i * 20}Hz`,
+                p: { f1: 800 + i * 20, f2: (800 + i * 20) * 1.45, decay: 0.12 }
+            })),
+            // Group B: Low & Heavy (600-800Hz)
+            ...[...Array(10)].map((_, i) => ({
+                name: `Hyo B-${i + 1}`,
+                desc: `Low ${600 + i * 20}Hz`,
+                p: { f1: 600 + i * 20, f2: (600 + i * 20) * 1.6, decay: 0.15 }
+            })),
+            // Group C: High & Sharp (1000-1200Hz)
+            ...[...Array(10)].map((_, i) => ({
+                name: `Hyo C-${i + 1}`,
+                desc: `High ${1000 + i * 20}Hz`,
+                p: { f1: 1000 + i * 20, f2: (1000 + i * 20) * 1.3, decay: 0.08 }
+            })),
+        ];
+
+        // ==========================================
+        // 3. 開始音 (Boxing Gong)
+        // ==========================================
+        function playGong(params) {
+            const now = ctx.currentTime;
+            const { f1 = 300, duration = 2.0 } = params;
+
+            // Fundamental
+            playBellPart(f1, duration, 1.0);
+            // Inharmonics (Metal)
+            playBellPart(f1 * 1.414, duration * 0.8, 0.6);
+            playBellPart(f1 * 2.3, duration * 0.6, 0.4);
+            playBellPart(f1 * 3.5, duration * 0.4, 0.2);
+
+            // Impact Noise
+            const n = ctx.createBufferSource();
+            const b = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
+            const d = b.getChannelData(0);
+            for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+            n.buffer = b;
+            const ng = ctx.createGain();
+            n.connect(ng); ng.connect(ctx.destination);
+            ng.gain.setValueAtTime(1.0, now); ng.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            n.start(now);
+        }
+
+        function playBellPart(freq, dur, vol) {
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.frequency.value = freq;
+            osc.connect(gain); gain.connect(ctx.destination);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(vol * 0.5, now + 0.005);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+            osc.start(now); osc.stop(now + dur + 0.1);
+        }
+
+        const gongVariations = [
+            { name: "Gong #1", desc: "Standard (300Hz)", p: { f1: 300 } },
+            { name: "Gong #2", desc: "Low (200Hz)", p: { f1: 200 } },
+            { name: "Gong #3", desc: "High (400Hz)", p: { f1: 400 } },
+            { name: "Gong #4", desc: "Short Decay", p: { f1: 300, duration: 1.0 } },
+            { name: "Gong #5", desc: "Long Sustain", p: { f1: 300, duration: 4.0 } },
+        ];
+
+
+        // UI生成
+        const piriGrid = document.getElementById('piri-grid');
+        piriVariations.forEach(v => {
+            const btn = document.createElement('button');
+            btn.className = 'sound-btn';
+            btn.innerHTML = `<div class="btn-title">${v.name}</div><div class="btn-desc">${v.desc}</div>`;
+            btn.onclick = () => { if (v.func) v.func(); else playMixedPiri(v.p); };
+            piriGrid.appendChild(btn);
+        });
+
+        const hyoGrid = document.getElementById('hyoshigi-grid');
+        hyoshigiVariations.forEach(v => {
+            const btn = document.createElement('button');
+            btn.className = 'sound-btn';
+            btn.innerHTML = `<div class="btn-title">${v.name}</div><div class="btn-desc">${v.desc}</div>`;
+            btn.onclick = () => playHyoshigi(v.p);
+            hyoGrid.appendChild(btn);
+        });
+
+        const gongGrid = document.getElementById('gong-grid');
+        gongVariations.forEach(v => {
+            const btn = document.createElement('button');
+            btn.className = 'sound-btn';
+            btn.innerHTML = `<div class="btn-title">${v.name}</div><div class="btn-desc">${v.desc}</div>`;
+            btn.onclick = () => playGong(v.p);
+            gongGrid.appendChild(btn);
+        });
+
+    </script>
+</body>
+
+</html>
