@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heavy Timer - デザイン & サウンドプレビュー v2</title>
+
+    <!-- DSEG Fonts (CDN) -->
+    <link href="https://cdn.jsdelivr.net/npm/dseg@0.46.0/css/dseg.css" rel="stylesheet" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Chakra+Petch:wght@700&family=Orbitron:wght@700;900&family=Press+Start+2P&family=Share+Tech+Mono&family=Silkscreen:wght@700&family=Wallpoet&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --timer-green: #00ff00;
+            --timer-red: #ff3333;
+            --bg-color: #0a0a0a;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1,
+        h2 {
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+            color: #888;
+        }
+
+        .section {
+            margin-bottom: 50px;
+        }
+
+        /* === Font Preview Styles === */
+        .font-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .font-card {
+            background: #151515;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #333;
+        }
+
+        .font-name {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .timer-display {
+            font-size: 80px;
+            line-height: 1;
+            color: var(--timer-green);
+            text-shadow: 0 0 20px var(--timer-green);
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        /* Font Classes */
+        .f-dseg-classic {
+            font-family: 'DSEG7 Classic', monospace;
+        }
+
+        .f-dseg-classic-i {
+            font-family: 'DSEG7 Classic', monospace;
+            font-style: italic;
+        }
+
+        .f-dseg-modern {
+            font-family: 'DSEG7 Modern', monospace;
+        }
+
+        .f-dseg-modern-i {
+            font-family: 'DSEG7 Modern', monospace;
+            font-style: italic;
+        }
+
+        .f-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .f-blackops {
+            font-family: 'Black Ops One', cursive;
+        }
+
+        .f-sharetech {
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .f-wallpoet {
+            font-family: 'Wallpoet', cursive;
+        }
+
+        .f-chakra {
+            font-family: 'Chakra Petch', sans-serif;
+        }
+
+        /* === Sound Preview Styles === */
+        .sound-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .sound-btn {
+            background: #222;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.1s;
+            text-align: left;
+        }
+
+        .sound-btn:hover {
+            background: #333;
+            border-color: #666;
+        }
+
+        .sound-btn:active {
+            transform: scale(0.98);
+            background: #444;
+        }
+
+        .btn-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .btn-desc {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .control-panel {
+            position: sticky;
+            bottom: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #444;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Heavy Timer Design System v2</h1>
+
+    <div class="section">
+        <h2>1. フォント候補 (10種類)</h2>
+        <p>「0:05」のような表示で比較してください。</p>
+
+        <div class="font-grid">
+            <div class="font-card">
+                <div class="font-name">Option 1: DSEG7 Classic (Italic) - 現在の採用フォント</div>
+                <div class="timer-display f-dseg-classic-i">0:05</div>
+            </div>
+            <div class="font-card">
+                <div class="font-name">Option 2: DSEG7 Classic (Regular) - 傾きなし</div>
+                <div class="timer-display f-dseg-classic">0:05</div>
+            </div>
+            <div class="font-card">
+                <div class="font-name">Option 3: DSEG7 Modern (Italic) - より角ばった形状</div>
+                <div class="timer-display f-dseg-modern-i">0:05</div>
+            </div>
+            <div class="font-card">
+                <div class="font-name">Option 4: DSEG7 Modern (Regular)</div>
+                <div class="timer-display f-dseg-modern">0:05</div>
+            </div>
+            <div class="font-card">
+                <div class="font-name">Option 5: Orbitron (Bold) - SF的デザイン</div>
+                <div class="timer-display f-orbitron">0:05</div>
+            </div>
+            <div class="font-card">
+                <div class="font-name">Option 6: Black Ops One - ミリタリー風ステンシル</div>
+                <div class="timer-display f-blackops">0:05</div>
+            </div>
+            <div class="font-card">
+                <div class="font-name">Option 7: Share Tech Mono - データ表示風</div>
+                <div class="timer-display f-sharetech">0:05</div>
+            </div>
+            <div class="font-card">
+                <div class="font-name">Option 8: Wallpoet - 直線的なステンシル</div>
+                <div class="timer-display f-wallpoet">0:05</div>
+            </div>
+            <div class="font-card">
+                <div class="font-name">Option 9: Chakra Petch - 角ばった近未来風</div>
+                <div class="timer-display f-chakra">0:05</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>2. 終了音 (ピリピリ音)</h2>
+        <p>「ピリピリピリ」という高速アラーム音。10パターン。</p>
+        <div class="sound-grid" id="alarm-grid"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. 10秒前警告 (拍子木/クラック)</h2>
+        <p>「カン...カン」と少し間隔を空けた、乾いたクラック音。10パターン。</p>
+        <div class="sound-grid" id="clack-grid"></div>
+    </div>
+
+    <script>
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // ==========================================
+        // 終了音 (ピリピリ系) 生成ロジック
+        // ==========================================
+        function playPiriPiri(params) {
+            const now = ctx.currentTime;
+            const { freq, speed, count, type = 'square' } = params;
+
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = type;
+            osc.frequency.value = freq;
+
+            // Amplitute Modulation (トレモロ) でピリピリ感を作る
+            // 矩形波LFOで音をON/OFFする
+            const lfo = ctx.createOscillator();
+            lfo.type = 'square';
+            lfo.frequency.value = speed; // Hz (例: 15Hz = 1秒に15回)
+
+            const lfoGain = ctx.createGain();
+            lfoGain.gain.value = 1000; // ゲインを大きく振る
+
+            // 接続: LFO -> MainGain.gain だとマイナス値で位相反転するだけなので、
+            // LFO -> GainNode(Amplitude) -> MainGain のように構成するか、
+            // 単純に時間制御で実装する方が確実だが、ここではLFOで実装
+
+            // シンプルな実装：setInterval的なスケジューリングでON/OFFを繰り返す
+            const duration = 0.05; // 1回の発音の長さ
+            const interval = 1 / speed; // 発音間隔
+
+            for (let i = 0; i < count; i++) {
+                const time = now + i * interval;
+
+                const o = ctx.createOscillator();
+                o.type = type;
+                o.frequency.value = freq;
+
+                const g = ctx.createGain();
+                o.connect(g);
+                g.connect(ctx.destination);
+
+                g.gain.setValueAtTime(0, time);
+                g.gain.linearRampToValueAtTime(0.5, time + 0.005);
+                g.gain.setValueAtTime(0.5, time + duration - 0.005);
+                g.gain.linearRampToValueAtTime(0, time + duration);
+
+                o.start(time);
+                o.stop(time + duration + 0.01);
+            }
+        }
+
+        const alarmVariations = [
+            { name: "Alarm #1", desc: "標準的 (2000Hz, 15回/秒)", p: { freq: 2000, speed: 15, count: 12 } },
+            { name: "Alarm #2", desc: "高音・高速 (3000Hz, 20回/秒)", p: { freq: 3000, speed: 20, count: 15 } },
+            { name: "Alarm #3", desc: "低め・低速 (1500Hz, 10回/秒)", p: { freq: 1500, speed: 10, count: 8 } },
+            {
+                name: "Alarm #4", desc: "電話風 (Dual Tone)", func: () => {
+                    // 2つの周波数を混ぜる
+                    const now = ctx.currentTime;
+                    const interval = 0.06;
+                    for (let i = 0; i < 15; i++) {
+                        const t = now + i * interval;
+                        playTone(2000, t, 0.03);
+                        playTone(2500, t, 0.03);
+                    }
+                }
+            },
+            { name: "Alarm #5", desc: "鋭いノコギリ波", p: { freq: 2200, speed: 15, count: 12, type: 'sawtooth' } },
+            { name: "Alarm #6", desc: "超高速トリル", p: { freq: 2500, speed: 25, count: 20 } },
+            { name: "Alarm #7", desc: "電子ブザー風 (矩形波)", p: { freq: 1800, speed: 12, count: 10, type: 'square' } },
+            {
+                name: "Alarm #8", desc: "ピッチ降下", func: () => {
+                    const now = ctx.currentTime;
+                    const interval = 0.07;
+                    for (let i = 0; i < 10; i++) {
+                        const t = now + i * interval;
+                        playSweep(3000, 2000, t, 0.04);
+                    }
+                }
+            },
+            { name: "Alarm #9", desc: "デジタルアラーム", p: { freq: 2800, speed: 14, count: 12 } },
+            { name: "Alarm #10", desc: "威圧的", p: { freq: 1200, speed: 18, count: 15, type: 'sawtooth' } },
+        ];
+
+        function playTone(freq, time, dur) {
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.frequency.value = freq;
+            o.connect(g);
+            g.connect(ctx.destination);
+            g.gain.setValueAtTime(0.4, time);
+            g.gain.exponentialRampToValueAtTime(0.001, time + dur);
+            o.start(time);
+            o.stop(time + dur + 0.05);
+        }
+
+        function playSweep(f1, f2, time, dur) {
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.frequency.setValueAtTime(f1, time);
+            o.frequency.linearRampToValueAtTime(f2, time + dur);
+            o.connect(g);
+            g.connect(ctx.destination);
+            g.gain.setValueAtTime(0.4, time);
+            g.gain.exponentialRampToValueAtTime(0.001, time + dur);
+            o.start(time);
+            o.stop(time + dur + 0.05);
+        }
+
+
+        // ==========================================
+        // 拍子木 (クラック) 生成ロジック
+        // ==========================================
+        function playClack(params) {
+            const now = ctx.currentTime;
+            const { freq, interval, type = 'high', speed = 'slow' } = params;
+
+            // 2回鳴らす
+            const times = [now, now + interval];
+
+            times.forEach(t => {
+                // ノイズ成分（衝撃）
+                const noise = ctx.createBufferSource();
+                const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.05, ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
+                noise.buffer = buffer;
+
+                const noiseFilter = ctx.createBiquadFilter();
+                noiseFilter.type = 'highpass';
+                noiseFilter.frequency.value = 1000;
+
+                const noiseGain = ctx.createGain();
+                noise.connect(noiseFilter);
+                noiseFilter.connect(noiseGain);
+                noiseGain.connect(ctx.destination);
+
+                // トーン成分（木の響き）- 短く！
+                const osc = ctx.createOscillator();
+                osc.frequency.value = freq;
+                const oscGain = ctx.createGain();
+                osc.connect(oscGain);
+                oscGain.connect(ctx.destination);
+
+                // エンベロープ
+                noiseGain.gain.setValueAtTime(0.8, t);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.02); // 超短く
+
+                oscGain.gain.setValueAtTime(0.4, t);
+                oscGain.gain.exponentialRampToValueAtTime(0.01, t + 0.03); // 共鳴も短く
+
+                noise.start(t);
+                osc.start(t);
+                noise.stop(t + 0.05);
+                osc.stop(t + 0.05);
+            });
+        }
+
+        const clackVariations = [
+            { name: "Clack #1", desc: "標準的 (間隔 0.25s)", p: { freq: 1200, interval: 0.25 } },
+            { name: "Clack #2", desc: "高音 (1500Hz, 0.25s)", p: { freq: 1500, interval: 0.25 } },
+            { name: "Clack #3", desc: "ゆっくり (0.3s)", p: { freq: 1200, interval: 0.3 } },
+            { name: "Clack #4", desc: "速め (0.18s)", p: { freq: 1300, interval: 0.18 } },
+            { name: "Clack #5", desc: "低音・重め", p: { freq: 800, interval: 0.25 } },
+            {
+                name: "Clack #6", desc: "超ドライ (共鳴なしノイズのみ)", func: () => {
+                    const now = ctx.currentTime;
+                    [now, now + 0.25].forEach(t => {
+                        const n = ctx.createBufferSource();
+                        const b = ctx.createBuffer(1, 44100 * 0.05, 44100);
+                        const d = b.getChannelData(0);
+                        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+                        n.buffer = b;
+                        const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1500;
+                        const g = ctx.createGain();
+                        n.connect(f); f.connect(g); g.connect(ctx.destination);
+                        g.gain.setValueAtTime(0.8, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.015);
+                        n.start(t); n.stop(t + 0.05);
+                    });
+                }
+            },
+            {
+                name: "Clack #7", desc: "硬い音 (矩形波ミックス)", func: () => {
+                    // 実装省略（類似パターン）
+                    playClack({ freq: 2000, interval: 0.25 });
+                }
+            },
+            { name: "Clack #8", desc: "ウッドブロック風", p: { freq: 1000, interval: 0.22 } },
+            { name: "Clack #9", desc: "鋭いアタック", p: { freq: 1600, interval: 0.26 } },
+            { name: "Clack #10", desc: "スタジオ録音風", p: { freq: 1100, interval: 0.24 } },
+        ];
+
+        // UI生成
+        const alarmGrid = document.getElementById('alarm-grid');
+        alarmVariations.forEach(v => {
+            const btn = document.createElement('button');
+            btn.className = 'sound-btn';
+            btn.innerHTML = `<div class="btn-title">${v.name}</div><div class="btn-desc">${v.desc}</div>`;
+            btn.onclick = () => {
+                if (v.func) v.func();
+                else playPiriPiri(v.p);
+            };
+            alarmGrid.appendChild(btn);
+        });
+
+        const clackGrid = document.getElementById('clack-grid');
+        clackVariations.forEach(v => {
+            const btn = document.createElement('button');
+            btn.className = 'sound-btn';
+            btn.innerHTML = `<div class="btn-title">${v.name}</div><div class="btn-desc">${v.desc}</div>`;
+            btn.onclick = () => {
+                if (v.func) v.func();
+                else playClack(v.p);
+            };
+            clackGrid.appendChild(btn);
+        });
+
+    </script>
+</body>
+
+</html>

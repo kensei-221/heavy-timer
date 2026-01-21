@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heavy Timer - Sound Preview v6 (Kabuki & Metal)</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --timer-green: #00ff00;
+            --bg-color: #0a0a0a;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1,
+        h2,
+        h3 {
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+            color: var(--timer-green);
+        }
+
+        .section {
+            margin-bottom: 50px;
+        }
+
+        .sound-grid-large {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 8px;
+        }
+
+        .sound-btn {
+            background: #222;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.1s;
+            text-align: left;
+            font-size: 12px;
+        }
+
+        .sound-btn:hover {
+            background: #333;
+            border-color: var(--timer-green);
+        }
+
+        .btn-title {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 4px;
+            color: #fff;
+        }
+
+        .btn-desc {
+            font-size: 10px;
+            color: #aaa;
+        }
+
+        .confirmed-box {
+            border: 2px solid var(--timer-green);
+            padding: 20px;
+            background: #112211;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Sound Preview v6 (Kabuki & Metal Gong)</h1>
+
+    <div class="confirmed-box">
+        <h2>✅ 終了音 (確定済み)</h2>
+        <p><strong>Piri V4 #1</strong> (900Hz, 15Hz, Duty 20%) を採用します。</p>
+        <button class="sound-btn" onclick="playPiriV4_1()">▶ 再生確認: Piri V4 #1</button>
+    </div>
+
+    <div class="section">
+        <h2>1. 10秒警告 (歌舞伎・拍子木 30選)</h2>
+        <p>「ガチン！カァァァン！」重みのある衝撃と長い余韻。</p>
+
+        <h3>Group A: FM Hard Wood (硬質・共鳴)</h3>
+        <div class="sound-grid-large" id="hyo-a"></div>
+
+        <h3>Group B: Noise Resonator (打撃音強調)</h3>
+        <div class="sound-grid-large" id="hyo-b"></div>
+
+        <h3>Group C: Kabuki Style (歌舞伎・ツケ打ち風)</h3>
+        <div class="sound-grid-large" id="hyo-c"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. 開始音 (Heavy Metal Gong 30選)</h2>
+        <p>金属的で豊かな倍音を持つゴング。</p>
+
+        <h3>Group A: FM Gong (伝統的FM合成)</h3>
+        <div class="sound-grid-large" id="gong-a"></div>
+
+        <h3>Group B: Stacked Bell (加算合成)</h3>
+        <div class="sound-grid-large" id="gong-b"></div>
+
+        <h3>Group C: Dark Gong (低音・ノイズ混じり)</h3>
+        <div class="sound-grid-large" id="gong-c"></div>
+    </div>
+
+    <script>
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // ==========================================
+        // 0. 確定済み終了音 Piri V4 #1
+        // ==========================================
+        function playPiriV4_1() {
+            const freq = 900;
+            const speed = 15;
+            const count = 15;
+            const duty = 0.2;
+
+            const interval = 1 / speed;
+            const duration = interval * duty;
+            const now = ctx.currentTime;
+
+            for (let i = 0; i < count; i++) {
+                const t = now + i * interval;
+                const osc = ctx.createOscillator();
+                osc.type = 'sawtooth';
+                osc.frequency.value = freq;
+                const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = freq * 3;
+                const gain = ctx.createGain();
+                osc.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+
+                gain.gain.setValueAtTime(0, t);
+                gain.gain.linearRampToValueAtTime(0.7, t + 0.003);
+                gain.gain.setValueAtTime(0.7, t + duration * 0.8);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+                osc.start(t); osc.stop(t + duration + 0.05);
+            }
+        }
+
+        // ==========================================
+        // 1. 拍子木 (Kabuki Hyoshigi)
+        // ==========================================
+
+        // Algorithm A: FM Hard Wood
+        function playHyoshigiA(params) {
+            const { f1, ratio, idx, decay } = params;
+            const now = ctx.currentTime;
+            [now, now + 0.35].forEach((t, i) => { // 間隔を広げて溜めを作る
+                const osc = ctx.createOscillator();
+                const mod = ctx.createOscillator();
+                const modG = ctx.createGain();
+                const mainG = ctx.createGain();
+
+                osc.frequency.value = f1;
+                mod.frequency.value = f1 * ratio;
+                modG.gain.value = f1 * idx;
+
+                mod.connect(modG); modG.connect(osc.frequency);
+                osc.connect(mainG); mainG.connect(ctx.destination);
+
+                // 激しいアタックと長い余韻
+                mainG.gain.setValueAtTime(0, t);
+                mainG.gain.linearRampToValueAtTime(0.8, t + 0.005);
+                mainG.gain.exponentialRampToValueAtTime(0.001, t + decay);
+
+                // 変調も減衰させる（音が丸くなっていく）
+                modG.gain.setValueAtTime(f1 * idx, t);
+                modG.gain.exponentialRampToValueAtTime(0.01, t + decay * 0.5);
+
+                osc.start(t); osc.stop(t + decay + 0.1);
+                mod.start(t); mod.stop(t + decay + 0.1);
+            });
+        }
+
+        // Algorithm B: Noise Resonator (Impact)
+        function playHyoshigiB(params) {
+            const { f, Q, decay } = params;
+            const now = ctx.currentTime;
+            [now, now + 0.35].forEach((t) => {
+                const noise = ctx.createBufferSource();
+                const b = ctx.createBuffer(1, ctx.sampleRate * decay, ctx.sampleRate);
+                const d = b.getChannelData(0);
+                for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+                noise.buffer = b;
+
+                // 強烈なバンドパスフィルタで「木」の音を作る
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = f;
+                filter.Q.value = Q;
+
+                const gain = ctx.createGain();
+                noise.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+
+                gain.gain.setValueAtTime(1.0, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + decay);
+
+                noise.start(t); noise.stop(t + decay + 0.1);
+            });
+        }
+
+        // Algorithm C: Kabuki Layered (Low Impact + High Clack)
+        function playHyoshigiC(params) {
+            const { lowF, highF, decay } = params;
+            const now = ctx.currentTime;
+            [now, now + 0.4].forEach((t) => {
+                // Low Body (Square)
+                const osc1 = ctx.createOscillator(); osc1.type = 'square'; osc1.frequency.value = lowF;
+                const g1 = ctx.createGain();
+                const f1 = ctx.createBiquadFilter(); f1.type = 'lowpass'; f1.frequency.value = 800;
+                osc1.connect(f1); f1.connect(g1); g1.connect(ctx.destination);
+                g1.gain.setValueAtTime(0.6, t); g1.gain.exponentialRampToValueAtTime(0.001, t + 0.1); // 短く重く
+
+                // High Resonance (Saw)
+                const osc2 = ctx.createOscillator(); osc2.type = 'sawtooth'; osc2.frequency.value = highF;
+                const g2 = ctx.createGain();
+                const f2 = ctx.createBiquadFilter(); f2.type = 'highpass'; f2.frequency.value = 1000;
+                osc2.connect(f2); f2.connect(g2); g2.connect(ctx.destination);
+                g2.gain.setValueAtTime(0.5, t); g2.gain.exponentialRampToValueAtTime(0.001, t + decay); // 長い響き
+
+                // Click Noise
+                const n = ctx.createBufferSource();
+                const b = ctx.createBuffer(1, 44100 * 0.05, 44100);
+                const d = b.getChannelData(0);
+                for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+                n.buffer = b;
+                const ng = ctx.createGain();
+                const nf = ctx.createBiquadFilter(); nf.type = 'highpass'; nf.frequency.value = 3000;
+                n.connect(nf); nf.connect(ng); ng.connect(ctx.destination);
+                ng.gain.setValueAtTime(0.8, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.02);
+
+                osc1.start(t); osc1.stop(t + 0.2);
+                osc2.start(t); osc2.stop(t + decay + 0.1);
+                n.start(t); n.stop(t + 0.1);
+            });
+        }
+
+        // ==========================================
+        // 2. 開始音 (Heavy Metal Gong)
+        // ==========================================
+
+        // Algorithm A: FM Gong
+        function playGongA(params) {
+            const { f1, ratio, idx } = params;
+            const now = ctx.currentTime;
+            const dur = 3.0;
+
+            const bus = ctx.createGain(); bus.connect(ctx.destination);
+            bus.gain.value = 0.5;
+
+            const osc = ctx.createOscillator();
+            const mod = ctx.createOscillator();
+            const modG = ctx.createGain();
+
+            osc.frequency.value = f1;
+            mod.frequency.value = f1 * ratio;
+            modG.gain.value = f1 * idx;
+
+            mod.connect(modG); modG.connect(osc.frequency);
+            osc.connect(bus);
+
+            bus.gain.setValueAtTime(0, now);
+            bus.gain.linearRampToValueAtTime(1.0, now + 0.01);
+            bus.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+            // Index Decay (金属感が徐々に落ち着く)
+            modG.gain.setValueAtTime(f1 * idx, now);
+            modG.gain.exponentialRampToValueAtTime(0.1, now + dur * 0.3);
+
+            osc.start(now); osc.stop(now + dur + 0.1);
+            mod.start(now); mod.stop(now + dur + 0.1);
+        }
+
+        // Algorithm B: Stacked Bell
+        function playGongB(params) {
+            const { base, partials } = params;
+            const now = ctx.currentTime;
+            const master = ctx.createGain(); master.connect(ctx.destination); master.gain.value = 0.4;
+
+            partials.forEach((p, i) => {
+                const osc = ctx.createOscillator();
+                osc.frequency.value = base * p;
+                const g = ctx.createGain();
+                osc.connect(g); g.connect(master);
+
+                const dur = 3.0 / (i + 1); // 高次は早く減衰
+                g.gain.setValueAtTime(0, now);
+                g.gain.linearRampToValueAtTime(1.0 / (i + 1), now + 0.01);
+                g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+                osc.start(now); osc.stop(now + dur + 0.1);
+            });
+        }
+
+        // Algorithm C: Dark Gong (Noise + Square)
+        function playGongC(params) {
+            const { f } = params;
+            const now = ctx.currentTime;
+            const dur = 4.0;
+
+            // Low Square Drone
+            const sq = ctx.createOscillator(); sq.type = 'square'; sq.frequency.value = f;
+            const sqF = ctx.createBiquadFilter(); sqF.type = 'lowpass'; sqF.frequency.value = 400;
+            const sqG = ctx.createGain();
+            sq.connect(sqF); sqF.connect(sqG); sqG.connect(ctx.destination);
+            sqG.gain.setValueAtTime(0.5, now); sqG.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+            // Metallic Noise
+            const n = ctx.createBufferSource();
+            const b = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+            const d = b.getChannelData(0);
+            for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+            n.buffer = b;
+            const nF = ctx.createBiquadFilter(); nF.type = 'bandpass'; nF.frequency.value = f * 3; nF.Q.value = 10;
+            const nG = ctx.createGain();
+            n.connect(nF); nF.connect(nG); nG.connect(ctx.destination);
+            nG.gain.setValueAtTime(0.8, now); nG.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+
+            sq.start(now); sq.stop(now + dur);
+            n.start(now); n.stop(now + dur);
+        }
+
+
+        // Build UI
+
+        // Hyo A
+        const ha = document.getElementById('hyo-a');
+        [...Array(10)].forEach((_, i) => {
+            const btn = document.createElement('button'); btn.className = 'sound-btn';
+            const f = 600 + i * 50;
+            btn.innerHTML = `<div class="btn-title">A-${i + 1}</div><div class="btn-desc">FM ${f}Hz</div>`;
+            btn.onclick = () => playHyoshigiA({ f1: f, ratio: 1.4 + i * 0.1, idx: 3.0, decay: 0.4 });
+            ha.appendChild(btn);
+        });
+
+        // Hyo B
+        const hb = document.getElementById('hyo-b');
+        [...Array(10)].forEach((_, i) => {
+            const btn = document.createElement('button'); btn.className = 'sound-btn';
+            const f = 800 + i * 100;
+            btn.innerHTML = `<div class="btn-title">B-${i + 1}</div><div class="btn-desc">Res ${f}Hz</div>`;
+            btn.onclick = () => playHyoshigiB({ f, Q: 20 + i * 2, decay: 0.3 });
+            hb.appendChild(btn);
+        });
+
+        // Hyo C
+        const hc = document.getElementById('hyo-c');
+        [...Array(10)].forEach((_, i) => {
+            const btn = document.createElement('button'); btn.className = 'sound-btn';
+            const f = 400 + i * 30;
+            btn.innerHTML = `<div class="btn-title">C-${i + 1}</div><div class="btn-desc">Kabuki ${f}Hz</div>`;
+            btn.onclick = () => playHyoshigiC({ lowF: f, highF: f * 2.5, decay: 0.6 });
+            hc.appendChild(btn);
+        });
+
+        // Gong A
+        const ga = document.getElementById('gong-a');
+        [...Array(10)].forEach((_, i) => {
+            const btn = document.createElement('button'); btn.className = 'sound-btn';
+            const f = 200 + i * 20;
+            btn.innerHTML = `<div class="btn-title">A-${i + 1}</div><div class="btn-desc">FM ${f}Hz</div>`;
+            btn.onclick = () => playGongA({ f1: f, ratio: 1.414, idx: 2.0 + i * 0.5 });
+            ga.appendChild(btn);
+        });
+
+        // Gong B
+        const gb = document.getElementById('gong-b');
+        [...Array(10)].forEach((_, i) => {
+            const btn = document.createElement('button'); btn.className = 'sound-btn';
+            const base = 150 + i * 15;
+            btn.innerHTML = `<div class="btn-title">B-${i + 1}</div><div class="btn-desc">Stack ${base}Hz</div>`;
+            btn.onclick = () => playGongB({ base, partials: [1, 2.7, 4.2, 5.8, 7.1] });
+            gb.appendChild(btn);
+        });
+
+        // Gong C
+        const gc = document.getElementById('gong-c');
+        [...Array(10)].forEach((_, i) => {
+            const btn = document.createElement('button'); btn.className = 'sound-btn';
+            const f = 100 + i * 20;
+            btn.innerHTML = `<div class="btn-title">C-${i + 1}</div><div class="btn-desc">Dark ${f}Hz</div>`;
+            btn.onclick = () => playGongC({ f });
+            gc.appendChild(btn);
+        });
+
+    </script>
+</body>
+
+</html>
