@@ -29,6 +29,7 @@ import {
     resumeAudioContext,
     suspendAudioContext
 } from '../utils/soundGenerator';
+import { keepScreenAwake, allowScreenSleep } from '../utils/capacitor';
 
 // タイマーの状態を表す型
 export type TimerState = 'idle' | 'workout' | 'rest' | 'finished';
@@ -134,6 +135,8 @@ export const useTimer = (initialConfig?: Partial<TimerConfig>): UseTimerReturn =
     const start = useCallback(async () => {
         // iOSでAudioContextをアクティブにする
         await resumeAudioContext();
+        // タイマー動作中は画面スリープを防止
+        await keepScreenAwake();
         setIsRunning(true);
 
         if (state === 'idle' || state === 'finished') {
@@ -154,6 +157,7 @@ export const useTimer = (initialConfig?: Partial<TimerConfig>): UseTimerReturn =
         setIsRunning(false);
         clearTimer();
         await suspendAudioContext(); // 音を即時停止
+        await allowScreenSleep(); // 画面スリープ再許可
     }, [clearTimer]);
 
     /**
@@ -161,6 +165,7 @@ export const useTimer = (initialConfig?: Partial<TimerConfig>): UseTimerReturn =
      */
     const reset = useCallback(async () => {
         await suspendAudioContext();
+        await allowScreenSleep(); // 画面スリープ再許可
         setIsRunning(false);
         clearTimer();
         setState('idle');
@@ -237,6 +242,7 @@ export const useTimer = (initialConfig?: Partial<TimerConfig>): UseTimerReturn =
                             setState('finished');
                             setIsRunning(false);
                             clearTimer();
+                            allowScreenSleep(); // 画面スリープ再許可
                             return 0;
                         }
                     } else if (state === 'rest') {

@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  base: './',
+  // Capacitorはローカルファイルから読み込むため空文字列が必要
+  base: '',
   plugins: [
     react(),
     VitePWA({
