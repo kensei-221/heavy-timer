@@ -2,8 +2,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// GitHub Pages: '/heavy-timer/'  |  Capacitor iOS: ''
+const base = process.env.BUILD_TARGET === 'capacitor' ? '' : '/heavy-timer/'
+
 export default defineConfig({
-  base: '/heavy-timer/',
+  base,
   plugins: [
     react(),
     VitePWA({
