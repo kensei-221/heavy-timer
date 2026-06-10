@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heavy Timer - ボクシングゴング試聴</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #1a1a2e;
+            color: white;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #00ff00;
+            text-align: center;
+            font-size: 22px;
+        }
+
+        p.desc {
+            color: #aaa;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .sound-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .sound-btn {
+            background: linear-gradient(to bottom, #333, #222);
+            border: 2px solid #444;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .sound-btn:hover {
+            border-color: #00ff00;
+            background: linear-gradient(to bottom, #444, #333);
+        }
+
+        .sound-btn:active {
+            transform: scale(0.98);
+        }
+
+        .sound-btn .name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00ff00;
+        }
+
+        .sound-btn .detail {
+            font-size: 13px;
+            color: #999;
+            margin-top: 6px;
+        }
+
+        .sound-btn.current .name {
+            color: #ffcc00;
+        }
+
+        .volume-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+            background: #222;
+            padding: 12px 16px;
+            border-radius: 10px;
+        }
+
+        .volume-row input {
+            flex: 1;
+            accent-color: #00ff00;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🥊 ボクシングゴング 試聴ページ</h1>
+    <p class="desc">タイマー開始音の候補です。気に入った番号を教えてください。</p>
+
+    <div class="volume-row">
+        <span>🔊 音量</span>
+        <input type="range" id="volume" min="0" max="1" step="0.05" value="0.7">
+    </div>
+
+    <div class="sound-grid">
+        <button class="sound-btn" onclick="playPattern(1)">
+            <div class="name">① クラシック・リングベル</div>
+            <div class="detail">試合開始の「カーン…」1打。高めの澄んだ金属音で長めの余韻。</div>
+        </button>
+
+        <button class="sound-btn" onclick="playPattern(2)">
+            <div class="name">② ハイトーン・ベル</div>
+            <div class="detail">さらに高く鋭い1打。立ち上がりが速く、短めの余韻でキレ重視。</div>
+        </button>
+
+        <button class="sound-btn" onclick="playPattern(3)">
+            <div class="name">③ ダブルストライク</div>
+            <div class="detail">「カンカーン！」の2打。実際のリングサイドでよく聞く叩き方。</div>
+        </button>
+
+        <button class="sound-btn" onclick="playPattern(4)">
+            <div class="name">④ ラピッド3連打</div>
+            <div class="detail">「カンカンカン！」の素早い3打。開始の合図として勢いを重視。</div>
+        </button>
+
+        <button class="sound-btn current" onclick="playCurrent()">
+            <div class="name">（参考）現在の開始音</div>
+            <div class="detail">いまアプリで鳴っている低めのゴング。比較用。</div>
+        </button>
+    </div>
+
+    <script>
+        let ctx = null;
+
+        function getCtx() {
+            if (!ctx) {
+                ctx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (ctx.state === 'suspended') ctx.resume();
+            return ctx;
+        }
+
+        function getVolume() {
+            return parseFloat(document.getElementById('volume').value);
+        }
+
+        /**
+         * ボクシングリングベル風ゴング
+         * 高めの基音 + 非整数倍音（鐘の金属感）+ 打撃ノイズ
+         */
+        function playGong({ base, partials, levels, decay, hits, interval }) {
+            const c = getCtx();
+            const now = c.currentTime;
+
+            const master = c.createGain();
+            const comp = c.createDynamicsCompressor();
+            comp.threshold.value = -12;
+            comp.knee.value = 10;
+            comp.ratio.value = 8;
+            comp.attack.value = 0.001;
+            comp.release.value = 0.2;
+            master.connect(comp);
+            comp.connect(c.destination);
+            master.gain.value = getVolume();
+
+            for (let h = 0; h < hits; h++) {
+                const t = now + h * interval;
+                // 最後の1打だけ余韻をフルに、途中の打は短く切る
+                const isLast = h === hits - 1;
+                const d = isLast ? decay : Math.min(decay, interval * 1.2);
+
+                partials.forEach((p, i) => {
+                    // わずかなデチューンペアで「ワンワン」といううなりを作る（鐘らしさ）
+                    [0, 2.5].forEach(det => {
+                        const osc = c.createOscillator();
+                        osc.frequency.value = base * p + det;
+
+                        const g = c.createGain();
+                        osc.connect(g);
+                        g.connect(master);
+
+                        const level = (levels[i] || 0.3) * 0.5;
+                        g.gain.setValueAtTime(0, t);
+                        g.gain.linearRampToValueAtTime(level, t + 0.002);
+                        g.gain.exponentialRampToValueAtTime(0.001, t + d / (1 + i * 0.35));
+
+                        osc.start(t);
+                        osc.stop(t + d + 0.1);
+                    });
+                });
+
+                // 打撃ノイズ（ハンマーのアタック感）
+                const nb = c.createBuffer(1, c.sampleRate * 0.03, c.sampleRate);
+                const nd = nb.getChannelData(0);
+                for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+                const noise = c.createBufferSource();
+                noise.buffer = nb;
+                const hp = c.createBiquadFilter();
+                hp.type = 'highpass';
+                hp.frequency.value = 2500;
+                const ng = c.createGain();
+                noise.connect(hp);
+                hp.connect(ng);
+                ng.connect(master);
+                ng.gain.setValueAtTime(0.7, t);
+                ng.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+                noise.start(t);
+            }
+        }
+
+        const PATTERNS = {
+            1: { // クラシック・リングベル
+                base: 820,
+                partials: [1, 2.05, 3.0, 4.2, 5.45],
+                levels: [1.0, 0.85, 0.55, 0.4, 0.25],
+                decay: 2.8,
+                hits: 1,
+                interval: 0
+            },
+            2: { // ハイトーン・ベル
+                base: 1080,
+                partials: [1, 2.2, 3.05, 4.35],
+                levels: [1.0, 0.7, 0.45, 0.3],
+                decay: 1.8,
+                hits: 1,
+                interval: 0
+            },
+            3: { // ダブルストライク
+                base: 900,
+                partials: [1, 2.05, 3.0, 4.2],
+                levels: [1.0, 0.8, 0.5, 0.35],
+                decay: 2.2,
+                hits: 2,
+                interval: 0.28
+            },
+            4: { // ラピッド3連打
+                base: 950,
+                partials: [1, 2.05, 3.0, 4.2],
+                levels: [1.0, 0.8, 0.5, 0.35],
+                decay: 1.8,
+                hits: 3,
+                interval: 0.19
+            }
+        };
+
+        function playPattern(n) {
+            playGong(PATTERNS[n]);
+        }
+
+        // 現在の開始音（比較用）: src/utils/soundGenerator.ts の playStartNotification 相当
+        function playCurrent() {
+            const c = getCtx();
+            const now = c.currentTime;
+            const master = c.createGain();
+            const comp = c.createDynamicsCompressor();
+            comp.threshold.value = -10;
+            comp.knee.value = 10;
+            comp.ratio.value = 12;
+            comp.attack.value = 0;
+            comp.release.value = 0.25;
+            master.connect(comp);
+            comp.connect(c.destination);
+            master.gain.value = getVolume();
+
+            const baseFreq = 220;
+            const partials = [1, 2.7, 4.2, 5.8, 7.1, 8.9, 11.4];
+
+            partials.forEach((p, i) => {
+                const osc = c.createOscillator();
+                osc.frequency.value = baseFreq * p;
+                if (i > 0) {
+                    osc.frequency.setValueAtTime(baseFreq * p, now);
+                    osc.frequency.linearRampToValueAtTime(baseFreq * p - 5 * i, now + 2.0);
+                }
+                const g = c.createGain();
+                osc.connect(g);
+                g.connect(master);
+                const level = (1.0 / (i * 0.5 + 1)) * 1.5;
+                const dur = (1.5 / (i * 0.3 + 1)) + 0.2;
+                g.gain.setValueAtTime(0, now);
+                g.gain.linearRampToValueAtTime(level, now + 0.005);
+                g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+                osc.start(now);
+                osc.stop(now + dur + 0.1);
+            });
+
+            const n = c.createBufferSource();
+            const b = c.createBuffer(1, c.sampleRate * 0.1, c.sampleRate);
+            const d = b.getChannelData(0);
+            for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+            n.buffer = b;
+            const nG = c.createGain();
+            n.connect(nG);
+            nG.connect(master);
+            nG.gain.setValueAtTime(0.8, now);
+            nG.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+            n.start(now);
+        }
+    </script>
+</body>
+
+</html>
