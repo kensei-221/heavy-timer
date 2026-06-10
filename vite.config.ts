@@ -8,7 +8,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'gong-start.mp3'],
+      workbox: {
+        // 既定のプリキャッシュ対象に加え、開始音MP3もオフライン用にキャッシュする
+        globPatterns: ['**/*.{js,css,html,ico,svg,mp3}'],
+      },
       manifest: {
         name: 'Heavy Timer',
         short_name: 'HeavyTimer',

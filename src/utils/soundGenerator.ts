@@ -1,8 +1,8 @@
 /**
  * Heavy Timer Sound Generator
  * Web Audio APIを使用したサウンド生成 (最終決定版)
- * 
- * 1. 開始音: Metal Gong (B7ベース改・爆音金属)
+ *
+ * 1. 開始音: ボクシングゴング (gong-start.mp3 を再生)
  * 2. 終了音: Piri Piri (V4 #1ベース)
  * 3. 警告音: Kabuki Hyoshigi (B9ベース改・轟音拍子木)
  */
@@ -16,6 +16,43 @@ export const getAudioContext = (): AudioContext => {
         audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
     return audioContext;
+};
+
+// === 開始音（MP3）の読み込み・キャッシュ ===
+
+// デコード済みの開始音バッファ（一度読み込んだら使い回す）
+let startSoundBuffer: AudioBuffer | null = null;
+// 読み込み中のPromise（多重フェッチ防止）
+let startSoundLoading: Promise<AudioBuffer> | null = null;
+
+// base ('./') を考慮した開始音のURL
+const START_SOUND_URL = `${import.meta.env.BASE_URL}gong-start.mp3`;
+
+/**
+ * 開始音MP3をフェッチしてデコードする（結果はキャッシュ）
+ * デコードはユーザー操作前（suspended状態）でも可能なので、
+ * アプリ起動時に先読みしておくと初回タップで遅延なく鳴らせる。
+ */
+export const loadStartSound = (): Promise<AudioBuffer> => {
+    if (startSoundBuffer) return Promise.resolve(startSoundBuffer);
+    if (startSoundLoading) return startSoundLoading;
+
+    const ctx = getAudioContext();
+    startSoundLoading = fetch(START_SOUND_URL)
+        .then(res => res.arrayBuffer())
+        .then(
+            arr =>
+                new Promise<AudioBuffer>((resolve, reject) => {
+                    // Safari互換のためコールバック形式のdecodeAudioDataを使用
+                    ctx.decodeAudioData(arr, resolve, reject);
+                })
+        )
+        .then(decoded => {
+            startSoundBuffer = decoded;
+            return decoded;
+        });
+
+    return startSoundLoading;
 };
 
 /**
@@ -43,6 +80,11 @@ export const unlockAudio = (): void => {
         source.start(0);
         audioUnlocked = true;
     }
+
+    // 開始音MP3を先読み（初回タップで遅延なく鳴らすため）
+    loadStartSound().catch(() => {
+        /* 読み込み失敗時は再生時に再試行する */
+    });
 };
 
 // AudioContextの再開（ユーザー操作で呼び出す）
@@ -67,70 +109,35 @@ function makeDistortionCurve(amount: number) {
 }
 
 /**
- * 1. 開始音: Metal Gong (B7 Diffuse Mix)
- * 元のB7 (Stacked Bell) をベースに、より金属的で「けたたましい」響きに強化
+ * 1. 開始音: ボクシングゴング (gong-start.mp3)
+ * 読み込み済みのMP3バッファを音量調整して再生する。
+ * 未読み込みの場合はその場で読み込んでから再生する。
  */
-export const playStartNotification = (volume: number = 1.0): void => {
+const playBuffer = (buffer: AudioBuffer, volume: number): void => {
     const ctx = getAudioContext();
-    const now = ctx.currentTime;
-    const master = ctx.createGain();
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
 
-    // マスタリングリミッター的なコンプレッション
-    const compressor = ctx.createDynamicsCompressor();
-    compressor.threshold.value = -10;
-    compressor.knee.value = 10;
-    compressor.ratio.value = 12;
-    compressor.attack.value = 0;
-    compressor.release.value = 0.25;
+    const gain = ctx.createGain();
+    gain.gain.value = volume;
 
-    master.connect(compressor);
-    compressor.connect(ctx.destination);
-    master.gain.value = volume; // 最大音量
+    src.connect(gain);
+    gain.connect(ctx.destination);
+    src.start();
+};
 
-    // Base Freq: B7 (240Hz付近) -> 少し低くして重みを出す
-    const baseFreq = 220;
-    // Partials: 複雑な非整数倍音で金属感を強調
-    const partials = [1, 2.7, 4.2, 5.8, 7.1, 8.9, 11.4];
+export const playStartNotification = (volume: number = 1.0): void => {
+    if (startSoundBuffer) {
+        playBuffer(startSoundBuffer, volume);
+        return;
+    }
 
-    partials.forEach((p, i) => {
-        const osc = ctx.createOscillator();
-        osc.frequency.value = baseFreq * p;
-
-        // 高次は少しデチューンさせてうねりを出す
-        if (i > 0) {
-            osc.frequency.setValueAtTime(baseFreq * p, now);
-            osc.frequency.linearRampToValueAtTime(baseFreq * p - 5 * i, now + 2.0);
-        }
-
-        const g = ctx.createGain();
-        osc.connect(g);
-        g.connect(master);
-
-        // 音量バランス: 高域を少し持ち上げて「けたたましさ」を出す
-        const level = (1.0 / (i * 0.5 + 1)) * 1.5;
-        // const dur = 4.0 / (i * 0.8 + 1) + 1.0; // 元の長い設定
-        // ユーザー要望: 3秒 -> 1.5秒へ短縮
-        const dur = (1.5 / (i * 0.3 + 1)) + 0.2;
-
-        g.gain.setValueAtTime(0, now);
-        g.gain.linearRampToValueAtTime(level, now + 0.005); // アタック超高速
-        g.gain.exponentialRampToValueAtTime(0.001, now + dur);
-
-        osc.start(now);
-        osc.stop(now + dur + 0.1);
-    });
-
-    // Impact Noise (打撃音)
-    const n = ctx.createBufferSource();
-    const b = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
-    const d = b.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    n.buffer = b;
-    const nG = ctx.createGain();
-    n.connect(nG); nG.connect(master);
-    nG.gain.setValueAtTime(0.8, now);
-    nG.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-    n.start(now);
+    // まだ読み込めていなければ読み込んでから再生（初回のみ僅かに遅延）
+    loadStartSound()
+        .then(buffer => playBuffer(buffer, volume))
+        .catch(() => {
+            /* 読み込み失敗時は無音 */
+        });
 };
 
 /**

@@ -25,7 +25,7 @@ import { ConfigButtons } from './components/ConfigButtons';
 import { ControlButtons } from './components/ControlButtons';
 import { IOSPicker, PickerType } from './components/IOSPicker';
 import { useTimer } from './hooks/useTimer';
-import { playClickSound, playMenuOpenSound, unlockAudio } from './utils/soundGenerator';
+import { playClickSound, playMenuOpenSound, unlockAudio, loadStartSound } from './utils/soundGenerator';
 import { Volume2, VolumeX } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -131,6 +131,13 @@ const App: React.FC = () => {
         }
     }, [showSettings]);
 
+
+    // === 開始音MP3の先読み（初回タップで遅延なく鳴らすため）===
+    useEffect(() => {
+        loadStartSound().catch(() => {
+            /* 読み込み失敗時は再生時に再試行 */
+        });
+    }, []);
 
     // === iOS AudioContext のアンロック ===
     useEffect(() => {
