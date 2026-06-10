@@ -132,7 +132,7 @@ const WheelColumn: React.FC<WheelColumnProps> = ({
     return (
         <div
             ref={containerRef}
-            className="h-[200px] overflow-y-scroll picker-wheel relative"
+            className="h-[200px] w-24 shrink-0 overflow-y-scroll overflow-x-hidden picker-wheel relative"
             onScroll={handleContainerScroll}
             style={{
                 scrollbarWidth: 'none',
