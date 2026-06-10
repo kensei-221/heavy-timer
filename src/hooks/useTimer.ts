@@ -26,8 +26,7 @@ import {
     playStartNotification,
     playEndNotification,
     playWarningNotification,
-    resumeAudioContext,
-    suspendAudioContext
+    unlockAudio
 } from '../utils/soundGenerator';
 
 // タイマーの状態を表す型
@@ -131,9 +130,10 @@ export const useTimer = (initialConfig?: Partial<TimerConfig>): UseTimerReturn =
     /**
      * タイマー開始
      */
-    const start = useCallback(async () => {
-        // iOSでAudioContextをアクティブにする
-        await resumeAudioContext();
+    const start = useCallback(() => {
+        // iOSでAudioContextを「同期的に」アクティブにする
+        // （await を挟むとユーザー操作のコンテキストが切れて無音になるため）
+        unlockAudio();
         setIsRunning(true);
 
         if (state === 'idle' || state === 'finished') {
@@ -149,18 +149,21 @@ export const useTimer = (initialConfig?: Partial<TimerConfig>): UseTimerReturn =
 
     /**
      * タイマー一時停止
+     *
+     * 注意: AudioContext自体は suspend しない。
+     * グローバルに停止すると、終了音・警告音は setInterval（ユーザー操作外）
+     * から鳴らすため、特にiOSで再開できず無音になってしまう。
+     * 鳴っている音は短いので自然に減衰させる。
      */
-    const pause = useCallback(async () => {
+    const pause = useCallback(() => {
         setIsRunning(false);
         clearTimer();
-        await suspendAudioContext(); // 音を即時停止
     }, [clearTimer]);
 
     /**
      * タイマーリセット
      */
-    const reset = useCallback(async () => {
-        await suspendAudioContext();
+    const reset = useCallback(() => {
         setIsRunning(false);
         clearTimer();
         setState('idle');
@@ -172,11 +175,11 @@ export const useTimer = (initialConfig?: Partial<TimerConfig>): UseTimerReturn =
     /**
      * 開始/一時停止の切り替え
      */
-    const toggle = useCallback(async () => {
+    const toggle = useCallback(() => {
         if (!isRunning) {
-            await start();
+            start();
         } else {
-            await pause();
+            pause();
         }
     }, [isRunning, start, pause]);
 

@@ -8,6 +8,7 @@
  */
 
 let audioContext: AudioContext | null = null;
+let audioUnlocked = false;
 
 // AudioContextの取得と初期化
 export const getAudioContext = (): AudioContext => {
@@ -17,19 +18,38 @@ export const getAudioContext = (): AudioContext => {
     return audioContext;
 };
 
+/**
+ * AudioContextのアンロック（ユーザー操作内で「同期的に」呼び出す）
+ *
+ * iOS Safari / PWA では、AudioContextはユーザー操作のハンドラ内で
+ * 同期的に resume() し、かつ一度何か音を鳴らさないとアンロックされない。
+ * await を挟むとユーザー操作のコンテキストが切れて無音になるため、
+ * ここでは Promise を待たずに同期的に resume と無音バッファ再生を行う。
+ */
+export const unlockAudio = (): void => {
+    const ctx = getAudioContext();
+
+    // 停止中なら再開（await しない）
+    if (ctx.state === 'suspended') {
+        ctx.resume();
+    }
+
+    // 無音バッファを一度鳴らしてアンロック（iOS対策・初回のみ）
+    if (!audioUnlocked) {
+        const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.start(0);
+        audioUnlocked = true;
+    }
+};
+
 // AudioContextの再開（ユーザー操作で呼び出す）
 export const resumeAudioContext = async (): Promise<void> => {
     const ctx = getAudioContext();
     if (ctx.state === 'suspended') {
         await ctx.resume();
-    }
-};
-
-// AudioContextの一時停止（即座に音を止める）
-export const suspendAudioContext = async (): Promise<void> => {
-    const ctx = getAudioContext();
-    if (ctx.state === 'running') {
-        await ctx.suspend();
     }
 };
 

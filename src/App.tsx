@@ -25,7 +25,7 @@ import { ConfigButtons } from './components/ConfigButtons';
 import { ControlButtons } from './components/ControlButtons';
 import { IOSPicker, PickerType } from './components/IOSPicker';
 import { useTimer } from './hooks/useTimer';
-import { playClickSound, playMenuOpenSound, resumeAudioContext } from './utils/soundGenerator';
+import { playClickSound, playMenuOpenSound, unlockAudio } from './utils/soundGenerator';
 import { Volume2, VolumeX } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -60,10 +60,10 @@ const App: React.FC = () => {
     const isPaused = !isRunning && isTimerActive;
 
     // === ピッカーを開く関数 ===
-    const openPicker = useCallback(async (type: PickerType) => {
+    const openPicker = useCallback((type: PickerType) => {
         if (isTimerActive) return;
 
-        await resumeAudioContext();
+        unlockAudio();
         playMenuOpenSound(config.volume);
         setPickerType(type);
         setPickerOpen(true);
@@ -94,26 +94,24 @@ const App: React.FC = () => {
     }, []);
 
     // === 設定ボタン（歯車）の処理 ===
-    const handleSettings = useCallback(async () => {
-        await resumeAudioContext();
+    const handleSettings = useCallback(() => {
+        unlockAudio();
         playClickSound(config.volume);
         setShowSettings(prev => !prev);
     }, [config.volume]);
 
     // === リセット処理（ラッパー） ===
-    const handleReset = useCallback(async () => {
-        await resumeAudioContext();
+    const handleReset = useCallback(() => {
+        unlockAudio();
         playClickSound(config.volume);
         timerReset();
     }, [timerReset, config.volume]);
 
     // === トグル処理（ラッパー） ===
-    const handleToggle = useCallback(async () => {
-        await resumeAudioContext();
-        // toggle時はタイマー開始音などが鳴るのでここでは追加の音は不要かもしれないが、
-        // 停止時にも音があったほうがフィードバックは良い。
-        // ただし start 内で playStartNotification がある。
-        // 停止時だけ鳴らす？ シンプルにここでの音はなしにしておく（useTimerに任せる）
+    const handleToggle = useCallback(() => {
+        // ユーザー操作内で同期的にAudioContextをアンロック
+        // （開始音は useTimer の start 内で鳴らす）
+        unlockAudio();
         timerToggle();
     }, [timerToggle]);
 
@@ -137,7 +135,7 @@ const App: React.FC = () => {
     // === iOS AudioContext のアンロック ===
     useEffect(() => {
         const handleFirstTouch = () => {
-            resumeAudioContext();
+            unlockAudio();
             document.removeEventListener('touchstart', handleFirstTouch);
             document.removeEventListener('click', handleFirstTouch);
         };
